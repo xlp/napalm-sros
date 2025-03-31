@@ -1258,7 +1258,7 @@ class NokiaSROSDriver(NetworkDriver):
                             continue
                         if "[]" in item:
                             continue
-                        elif cmd_line_pattern_re.search(item) or not row:
+                        elif self.cmd_line_pattern_re.search(item) or not row:
                             continue
                         elif "*(ro)[/configure]" in row:
                             continue
@@ -1267,11 +1267,11 @@ class NokiaSROSDriver(NetworkDriver):
                     return new_buff[: new_buff.rfind("\n")]
 
                 if retrieve == "running":
-                    buff_running = self._perform_cli_commands([cmd_running], True)
+                    buff_running = self._perform_cli_commands(cmd_running, True)
                     configuration["running"] = _update_buff(buff_running)
                     return configuration
                 elif retrieve == "startup":
-                    buff_running = self._perform_cli_commands([cmd_running], True)
+                    buff_running = self._perform_cli_commands(cmd_running, True)
                     configuration["startup"] = _update_buff(buff_running)
                     return configuration
                 elif retrieve == "candidate":
@@ -1279,7 +1279,7 @@ class NokiaSROSDriver(NetworkDriver):
                     configuration["candidate"] = _update_buff(buff_candidate)
                     return configuration
                 elif retrieve == "all":
-                    buff_running = self._perform_cli_commands([cmd_running], True)
+                    buff_running = self._perform_cli_commands(cmd_running, True)
                     buff_candidate = self._perform_cli_commands(cmd_candidate, True)
                     configuration["running"] = _update_buff(buff_running)
                     configuration["startup"] = _update_buff(buff_running)
