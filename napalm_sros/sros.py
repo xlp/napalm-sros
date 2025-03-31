@@ -1229,7 +1229,8 @@ class NokiaSROSDriver(NetworkDriver):
             if self.sros_get_format == "flat" or format == "flat":
                 # Getting output in MD-CLI format
                 # retrieving config using md-cli
-                cmd_running = "admin show configuration flat | no-more"
+                #cmd_running = "admin show configuration flat | no-more"
+                cmd_running = ["edit-config read-only", "configure", "info flat | no-more", "quit-config"]
                 cmd_candidate = ["edit-config read-only", "info flat | no-more", "quit-config"]
 
                 # helper method
@@ -1244,7 +1245,11 @@ class NokiaSROSDriver(NetworkDriver):
                         cmd_candidate[0],
                         cmd_candidate[1],
                         cmd_candidate[2],
-                        cmd_running,
+                        #cmd_running,
+                        cmd_running[0],
+                        cmd_running[1],
+                        cmd_running[2],
+                        cmd_running[3],
                     ]
                     count = 1
                     for item in updated_buff[0].split("\n"):
@@ -1253,18 +1258,12 @@ class NokiaSROSDriver(NetworkDriver):
                             continue
                         if "[]" in item:
                             continue
-                        elif self.cmd_line_pattern_re.search(item) or not row:
+                        elif cmd_line_pattern_re.search(item) or not row:
                             continue
-                        elif "persistent-indices" in item:
-                            break
+                        elif "*(ro)[/configure]" in row:
+                            continue
                         else:
-                            if "configure" in row and len(row) == 11:
-                                new_buff += row.strip() + "\n"
-                                count = count + 1
-                            else:
-                                if count == 1:
-                                    continue
-                                new_buff += row + "\n"
+                            new_buff += row.strip() + "\n"
                     return new_buff[: new_buff.rfind("\n")]
 
                 if retrieve == "running":
