@@ -1225,6 +1225,68 @@ class NokiaSROSDriver(NetworkDriver):
                     )
                     configuration["candidate"] = config_data_candidate_xml
                 return configuration
+                
+            if self.sros_get_format == "flat" or format == "flat":
+                # Getting output in MD-CLI format
+                # retrieving config using md-cli
+                cmd_running = "admin show configuration flat | no-more"
+                cmd_candidate = ["edit-config read-only", "info flat | no-more", "quit-config"]
+
+                # helper method
+                def _update_buff(buff):
+                    if "@nokia.com" in buff:
+                        buff = buff.split("@nokia.com.")
+                        updated_buff = [buff[1]]
+                    else:
+                        updated_buff = [buff]
+                    new_buff = ""
+                    match_strings = [
+                        cmd_candidate[0],
+                        cmd_candidate[1],
+                        cmd_candidate[2],
+                        cmd_running,
+                    ]
+                    count = 1
+                    for item in updated_buff[0].split("\n"):
+                        row = item.rstrip()
+                        if any(match in item for match in match_strings):
+                            continue
+                        if "[]" in item:
+                            continue
+                        elif self.cmd_line_pattern_re.search(item) or not row:
+                            continue
+                        elif "persistent-indices" in item:
+                            break
+                        else:
+                            if "configure" in row and len(row) == 11:
+                                new_buff += row.strip() + "\n"
+                                count = count + 1
+                            else:
+                                if count == 1:
+                                    continue
+                                new_buff += row + "\n"
+                    return new_buff[: new_buff.rfind("\n")]
+
+                if retrieve == "running":
+                    buff_running = self._perform_cli_commands([cmd_running], True)
+                    configuration["running"] = _update_buff(buff_running)
+                    return configuration
+                elif retrieve == "startup":
+                    buff_running = self._perform_cli_commands([cmd_running], True)
+                    configuration["startup"] = _update_buff(buff_running)
+                    return configuration
+                elif retrieve == "candidate":
+                    buff_candidate = self._perform_cli_commands(cmd_candidate, True)
+                    configuration["candidate"] = _update_buff(buff_candidate)
+                    return configuration
+                elif retrieve == "all":
+                    buff_running = self._perform_cli_commands([cmd_running], True)
+                    buff_candidate = self._perform_cli_commands(cmd_candidate, True)
+                    configuration["running"] = _update_buff(buff_running)
+                    configuration["startup"] = _update_buff(buff_running)
+                    configuration["candidate"] = _update_buff(buff_candidate)
+                    return configuration
+        
         except Exception as e:
             print("Error in method get config : {}".format(e))
             log.error("Error in method get config : %s" % traceback.format_exc())
